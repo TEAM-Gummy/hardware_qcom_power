@@ -34,7 +34,9 @@
 #define STATE_HDR_OFF "state=3"
 
 #define MAX_LENGTH         50
+#ifndef BOOST_SOCKET
 #define BOOST_SOCKET       "/dev/socket/pb"
+#endif
 
 static int client_sockfd;
 static struct sockaddr_un client_addr;
@@ -143,6 +145,7 @@ static void process_video_encode_hint(void *metadata)
 }
 
 
+#ifndef NO_TOUCH_BOOST
 static void touch_boost()
 {
     int rc;
@@ -159,9 +162,10 @@ static void touch_boost()
     snprintf(data, MAX_LENGTH, "1:%d", client);
     rc = sendto(client_sockfd, data, strlen(data), 0, (const struct sockaddr *)&client_addr, sizeof(struct sockaddr_un));
     if (rc < 0) {
-        ALOGV("%s: failed to send: %s", __func__, strerror(errno));
+        ALOGE("%s: failed to send: %s", __func__, strerror(errno));
     }
 }
+#endif
 
 static void power_set_interactive(struct power_module *module, int on)
 {
@@ -177,7 +181,9 @@ static void power_set_interactive(struct power_module *module, int on)
     ALOGV("%s %s", __func__, (on ? "ON" : "OFF"));
     if (on) {
         sync_thread(0);
+#ifndef NO_TOUCH_BOOST
         touch_boost();
+#endif
     } else {
         sync_thread(1);
     }
@@ -186,10 +192,12 @@ static void power_set_interactive(struct power_module *module, int on)
 static void power_hint(struct power_module *module, power_hint_t hint,
                        void *data) {
     switch (hint) {
+#ifndef NO_TOUCH_BOOST
         case POWER_HINT_INTERACTION:
             ALOGV("POWER_HINT_INTERACTION");
             touch_boost();
             break;
+#endif
 #if 0
         case POWER_HINT_VSYNC:
             ALOGV("POWER_HINT_VSYNC %s", (data ? "ON" : "OFF"));
